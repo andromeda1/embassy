@@ -27,6 +27,7 @@ import (
 	"github.com/gambol99/embassy/proxy/services"
 	"github.com/gambol99/embassy/utils"
 	"github.com/golang/glog"
+	"github.com/coreos/fleet/resource"
 )
 
 type EtcdClient struct {
@@ -91,20 +92,29 @@ func (e *EtcdClient) Watch(si *services.Service) (updates EndpointEventChannel, 
 }
 
 func (r *EtcdClient) WaitForChanges(path string, updateChannel chan *etcd.Response, stopChannel chan bool) {
+	/* step: set the wait index to zero */
+	wait_index := uint64(0)
+	/* step: enter the event loop */
 	for {
+		/* step: wait for changes to the key */
 		glog.V(5).Infof("Waiting on endpoints for service path: %s to change", path)
-		response, err := r.Client.Watch(path, uint64(0), true, nil, stopChannel)
+		response, err := r.Client.Watch(path, wait_index, true, nil, stopChannel)
 		if err != nil {
-			if r.KillOff {
-				glog.Infof("Quitting the watcher on service path: %s", path)
-				return
-			} else {
-				glog.Errorf("Etcd client for service path: %s recieved an error: %s", path, err)
-				time.Sleep(3 * time.Second)
-				continue
-			}
+			glog.Errorf("Etcd client for service path: %s recieved an error: %s", path, err)
+			time.Sleep(3 * time.Second)
+			/* step: reset the wait index for good measure */
+			wait_index = uint64(0)
+			continue
 		}
-		/* else we have a good response - lets check if it's a directory change */
+		/* step: check if we are killing off the agent */
+		if r.KillOff {
+			glog.Infof("Quitting the watcher on service path: %s", path)
+			break
+		}
+		/* step: update the wait_index */
+		wait_index = response.Node.ModifiedIndex + 1
+
+		/* step: make sure the change is a key change not directory */
 		if response.Node.Dir == false {
 			glog.V(7).Infof("Changed occured on path: %s", path)
 			updateChannel <- response

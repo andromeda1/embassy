@@ -9,11 +9,11 @@
 DISCOVERY=${DISCOVERY:-"etcd://localhost:4001"}
 INTERFACE=${INTERFACE:-eth0}
 VERBOSITY=${VERBOSITY:-0}
+DOCKER_IP=${DOCKER_IP:-"172.17.42.1"}
 PROXY_PORT="9999"
 RULE_COMMENT="embassy_redirection"
 RULE_CHAIN="PREROUTING"
 IPTABLES="/sbin/iptables"
-DOCKER_IP="172.17.42.1"
 
 say() {
   echo "** $@"
@@ -33,7 +33,7 @@ get_ipaddress() {
 IPADDRESS=$(get_ipaddress)
 DEL_RULE="-t nat -D PREROUTING "
 HAS_RULE="-t nat -L PREROUTING --line-numbers"
-ADD_RULE="-t nat -I PREROUTING -p tcp -d $DOCKER_IP -m comment --comment "$RULE_COMMENT" -j DNAT --to ${IPADDRESS}:${PROXY_PORT}"
+ADD_RULE="-t nat -I PREROUTING -p tcp -d ${DOCKER_IP} -m comment --comment "$RULE_COMMENT" -j DNAT --to ${IPADDRESS}:${PROXY_PORT}"
 
 rule_exists() {
   $IPTABLES $HAS_RULE | grep -q "${RULE_COMMENT}" && return 0 || return 1

@@ -30,6 +30,7 @@ type Service struct {
 	Name     string
 	Consumer string
 	Port     int
+	Tags     []string
 }
 
 func (s Service) IsValid() error {
@@ -43,5 +44,5 @@ func (s Service) IsValid() error {
 }
 
 func (s Service) String() string {
-	return fmt.Sprintf("name: %s:%d, ip: %s", s.Name, s.Port, s.Consumer)
+	return fmt.Sprintf("name: %s:%d, ip: %s, tags: %v", s.Name, s.Port, s.Consumer, s.Tags)
 }
